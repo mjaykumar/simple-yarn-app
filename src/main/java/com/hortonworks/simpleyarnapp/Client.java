@@ -85,6 +85,25 @@ public class Client {
     appContext.setAMContainerSpec(amContainer);
     appContext.setResource(capability);
     appContext.setQueue("default"); // queue 
+    
+   /* // Setup security tokens
+    if (UserGroupInformation.isSecurityEnabled()) {
+  // Note: Credentials class is marked as LimitedPrivate for HDFS and MapReduce
+    Credentials credentials = new Credentials();
+    String tokenRenewer = conf.get(YarnConfiguration.RM_PRINCIPAL);
+    if (tokenRenewer == null | | tokenRenewer.length() == 0) {
+        throw new IOException(
+      "Can't get Master Kerberos principal for the RM to use as renewer");
+    }
+
+  // For now, only getting tokens for the default file-system.
+   final Token<?> tokens[] =
+      fs.addDelegationTokens(tokenRenewer, credentials);
+   if (tokens != null) {
+    for (Token<?> token : tokens) {
+      LOG.info("Got dt for " + fs.getUri() + "; " + token);
+    }
+   } */
 
     // Submit application
     ApplicationId appId = appContext.getApplicationId();
