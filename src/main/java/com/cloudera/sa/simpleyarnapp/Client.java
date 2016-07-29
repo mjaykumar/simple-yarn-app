@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -27,7 +28,10 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.io.DataOutputBuffer;
 
 public class Client {
 
@@ -43,6 +47,8 @@ public class Client {
     YarnClient yarnClient = YarnClient.createYarnClient();
     yarnClient.init(conf);
     yarnClient.start();
+    //added for security
+    FileSystem fs = FileSystem.get(conf);
 
 
     // Create application via yarnClient
@@ -58,8 +64,8 @@ public class Client {
             "$JAVA_HOME/bin/java" +
             " -Xmx256M" +
             " com.cloudera.sa.simpleyarnapp.ApplicationMaster" +
-            " " + command +
-            " " + String.valueOf(n) +
+            " '" + command +
+            "' " + String.valueOf(n) +
             " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" + 
             " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr" 
             )
@@ -90,24 +96,28 @@ public class Client {
     appContext.setResource(capability);
     appContext.setQueue("default"); // queue 
     
-   /* // Setup security tokens
+    // Setup security tokens
     if (UserGroupInformation.isSecurityEnabled()) {
   // Note: Credentials class is marked as LimitedPrivate for HDFS and MapReduce
-    Credentials credentials = new Credentials();
+        UserGroupInformation.getUGIFromTicketCache("/tmp/krb5cc_2000","jay@CLOUDERA");
+        Credentials credentials = new Credentials();
     String tokenRenewer = conf.get(YarnConfiguration.RM_PRINCIPAL);
-    if (tokenRenewer == null | | tokenRenewer.length() == 0) {
-        throw new IOException(
-      "Can't get Master Kerberos principal for the RM to use as renewer");
+    if (tokenRenewer == null || tokenRenewer.length() == 0) {
+        throw new IOException("Can't get Master Kerberos principal for the RM to use as renewer");
     }
 
   // For now, only getting tokens for the default file-system.
-   final Token<?> tokens[] =
-      fs.addDelegationTokens(tokenRenewer, credentials);
+   final Token<?> tokens[] = fs.addDelegationTokens(tokenRenewer, credentials);
    if (tokens != null) {
     for (Token<?> token : tokens) {
-      LOG.info("Got dt for " + fs.getUri() + "; " + token);
+        System.out.println("Got dt for " + fs.getUri() + "; " + token);
     }
-   } */
+   }
+        DataOutputBuffer dob = new DataOutputBuffer();
+        credentials.writeTokenStorageToStream(dob);
+        ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+        amContainer.setTokens(fsTokens);
+    }
 
     // Submit application
     ApplicationId appId = appContext.getApplicationId();
