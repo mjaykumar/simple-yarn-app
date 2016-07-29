@@ -3,6 +3,7 @@ package com.cloudera.sa.simpleyarnapp;
 import java.util.Collections;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -78,6 +79,8 @@ public class ApplicationMaster {
             System.out.println("Application ACL " + ctx.getApplicationACLs().values().toString() );
             System.out.println("Get Command " + ctx.getCommands().toString() );
             System.out.println("Launching container " + container.getId());
+            System.out.println("UGI- Current user" + UserGroupInformation.getCurrentUser());
+            System.out.println("UGI- Current user" + UserGroupInformation.getLoginUser() );
             nmClient.startContainer(container, ctx);
 
         }
